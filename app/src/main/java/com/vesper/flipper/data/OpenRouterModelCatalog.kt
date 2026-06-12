@@ -16,12 +16,59 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
+enum class AiProvider {
+    OPENROUTER,
+    LM_STUDIO,
+    OLLAMA
+}
 /**
  * Fetches OpenRouter's live model catalog and selects one latest model
  * for each major manufacturer/provider used by the app.
  */
 @Singleton
 class OpenRouterModelCatalog @Inject constructor() {
+    @ApplicationContext private val context: Context
+    ) {
+    // AI Provider
+    private val AI_PROVIDER = stringPreferencesKey("ai_provider")
+    val aiProvider: Flow<AiProvider> = context.dataStore.data.map { preferences ->
+        val providerName = preferences[AI_PROVIDER] ?: AiProvider.OPENROUTER.name
+        try {
+            AiProvider.valueOf(providerName)
+        } catch (e: IllegalArgumentException) {
+            AiProvider.OPENROUTER
+        }
+    }
+
+    suspend fun setAiProvider(provider: AiProvider) {
+        context.dataStore.edit { preferences ->
+            preferences[AI_PROVIDER] = provider.name
+        }
+    }
+
+    // Local API URLs
+    private val LM_STUDIO_URL = stringPreferencesKey("lm_studio_url")
+    val lmStudioUrl: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[LM_STUDIO_URL] ?: "http://localhost:1234/v1"
+    }
+
+    suspend fun setLmStudioUrl(url: String) {
+        context.dataStore.edit { preferences ->
+            preferences[LM_STUDIO_URL] = url
+        }
+    }
+
+    private val OLLAMA_URL = stringPreferencesKey("ollama_url")
+    val ollamaUrl: Flow<String> = context.dataStore.data.map { preferences ->
+        preferences[OLLAMA_URL] ?: "http://localhost:11434/v1"
+    }
+
+    suspend fun setOllamaUrl(url: String) {
+        context.dataStore.edit { preferences ->
+            preferences[OLLAMA_URL] = url
+        }
+    }
+
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -143,6 +190,9 @@ class OpenRouterModelCatalog @Inject constructor() {
             Manufacturer("cohere", "Cohere"),
             Manufacturer("moonshotai", "Moonshot"),
             Manufacturer("z-ai", "Z.ai")
+
+                    // OpenRouter API Key
+                    private val API_KEY = stringPreferencesKey("openrouter_api_key")
         )
     }
 }
